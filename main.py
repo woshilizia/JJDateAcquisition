@@ -1,12 +1,12 @@
 # selenium对jj的数据进行爬虫
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from enum import Enum, unique
 
-# 配置浏览器信息
-opt = webdriver.ChromeOptions()
-opt.add_argument("--headless")
-driver = webdriver.Chrome(options=opt, executable_path='E:/chromedriver_win32/chromedriver')
-driver.get('http://www.jjwxc.net/fenzhan/dm/bl.html')
 # 文章类型
 @unique
 class ArticleType(Enum):
@@ -74,15 +74,39 @@ class Article(object):
         self.list_number = list_number
 
 
-links = driver.find_elements_by_xpath("//div[@class = 'wrapper box_06 first']/ul/li/a")
-link_list = [link.get_attribute('href') for link in links]
-for link in link_list:
-    driver.get(link)
-    article_name = driver.find_element_by_xpath("//*[@id='oneboolt']/tbody/tr[1]/td/div/span/h1/span").text
-    article_author = driver.find_element_by_xpath("//*[@id='oneboolt']/tbody/tr[1]/td/div/h2/a/span").text
-    count_click = driver.find_element_by_xpath("//*[@id='totleclick']").text
-    count_review = driver.find_element_by_xpath("//span[@itemprop='reviewCount']").text
-    count_collected = driver.find_element_by_xpath("//span[@itemprop='collectedCount']").text
-    print(' '.join([article_name, article_author, count_click, count_review, count_collected]))
-    print("--------------------")
-    driver.back()
+# 配置浏览器信息
+opt = webdriver.ChromeOptions()
+opt.add_argument("--headless")
+# 不等待解析完毕就直接返回
+opt.set_capability('pageLoadStrategy', 'none')
+driver = webdriver.Chrome(options=opt, executable_path='E:/chromedriver_win32/chromedriver')
+driver.get('http://www.jjwxc.net/fenzhan/dm/bl.html')
+try:
+    links = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.XPATH, '//div[@class = "wrapper box_06 first"]/ul/li/a'))
+    )
+    link_list = [link.get_attribute('href') for link in links]
+    for link in link_list:
+        driver.get(link)
+        try:
+            article_name = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="oneboolt"]/tbody/tr[1]/td/div/span/h1/span'))
+            ).text
+            article_author = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="oneboolt"]/tbody/tr[1]/td/div/h2/a/span'))
+            ).text
+            count_click = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="totleclick"]'))
+            ).text
+            count_review = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//span[@itemprop="reviewCount"]'))
+            ).text
+            count_collected = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//span[@itemprop="collectedCount"]'))
+            ).text
+            print(' '.join([article_name, article_author, count_click, count_review, count_collected]))
+            print("--------------------")
+        except TimeoutException as e:
+            print("--------------------")
+finally:
+    driver.quit()
