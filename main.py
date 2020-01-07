@@ -81,32 +81,31 @@ opt.add_argument("--headless")
 opt.set_capability('pageLoadStrategy', 'none')
 driver = webdriver.Chrome(options=opt, executable_path='E:/chromedriver_win32/chromedriver')
 driver.get('http://www.jjwxc.net/fenzhan/dm/bl.html')
+xpath_list = dict()
+xpath_list['article_name'] = '//*[@id="oneboolt"]/tbody/tr[1]/td/div/span/h1/span'
+xpath_list['article_author'] = '//*[@id="oneboolt"]/tbody/tr[1]/td/div/h2/a/span'
+xpath_list['count_collected'] = '//span[@itemprop="collectedCount"]'
+xpath_list['count_click'] = '//*[@id="totleclick"]'
+xpath_list['count_review'] = '//span[@itemprop="reviewCount"]'
+
 try:
-    links = WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.XPATH, '//div[@class = "wrapper box_06 first"]/ul/li/a'))
+    links = WebDriverWait(driver, 10, poll_frequency=0.2).until(
+        EC.visibility_of_all_elements_located((By.XPATH, '//div[@class = "wrapper box_06 first"]/ul/li/a'))
     )
     link_list = [link.get_attribute('href') for link in links]
     for link in link_list:
         driver.get(link)
         try:
-            article_name = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="oneboolt"]/tbody/tr[1]/td/div/span/h1/span'))
-            ).text
-            article_author = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="oneboolt"]/tbody/tr[1]/td/div/h2/a/span'))
-            ).text
-            count_click = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="totleclick"]'))
-            ).text
-            count_review = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//span[@itemprop="reviewCount"]'))
-            ).text
-            count_collected = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//span[@itemprop="collectedCount"]'))
-            ).text
-            print(' '.join([article_name, article_author, count_click, count_review, count_collected]))
+            result_list = dict()
+            WebDriverWait(driver, timeout=10, poll_frequency=0.05).until(
+                EC.visibility_of_element_located((By.XPATH, xpath_list['article_name']))
+            )
+            for value, xpath in xpath_list.items():
+                result_list[value] = driver.find_element_by_xpath(xpath).text
+
+            print(' '.join(result for result in result_list.values()))
             print("--------------------")
-        except TimeoutException as e:
-            print("--------------------")
+        except Exception as e:
+            print("--------------------", link, e)
 finally:
     driver.quit()
