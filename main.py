@@ -62,16 +62,47 @@ class ArticleList(Enum):
 
 # 存放文章信息
 class Article(object):
-    def __init__(self, link, name, author, click, review, collected, article_type, article_list, list_number):
+    def __init__(self, link, name, author, click, recommend, collected, article_type, article_list, list_number):
         self.article_link = link
         self.article_name = name
         self.article_author = author
         self.count_click = click
-        self.count_review = review
+        self.count_recommend = recommend
         self.count_collected = collected
         self.article_type = article_type
         self.article_list = article_list
         self.list_number = list_number
+
+
+def acquire_article(article_driver, article_link, article_type, article_list, list_number):
+    article_driver.get(article_link)
+    try:
+        result_list = dict()
+        WebDriverWait(article_driver, timeout=10, poll_frequency=0.05).until(
+            EC.visibility_of_element_located((By.XPATH, xpath_list['article_name']))
+        )
+        for name, xpath in xpath_list.items():
+            result_list[name] = article_driver.find_element_by_xpath(xpath).text
+
+        print(' '.join(result for result in result_list.values()))
+        print(' '.join([article_type, article_list, list_number]))
+        print("--------------------")
+    except Exception as e:
+        print("--------------------", link, e)
+
+
+def acquire_article_type(article_drive, jj_url):
+    article_drive.get(jj_url)
+
+
+def find_elements(link):
+    return WebDriverWait(driver, 10, poll_frequency=0.05).until(
+        EC.visibility_of_all_elements_located((By.XPATH, link)))
+
+
+def find_element(link):
+    return WebDriverWait(driver, 10, poll_frequency=0.05).until(
+        EC.visibility_of_all_element_located((By.XPATH, link)))
 
 
 # 配置浏览器信息
@@ -86,26 +117,14 @@ xpath_list['article_name'] = '//*[@id="oneboolt"]/tbody/tr[1]/td/div/span/h1/spa
 xpath_list['article_author'] = '//*[@id="oneboolt"]/tbody/tr[1]/td/div/h2/a/span'
 xpath_list['count_collected'] = '//span[@itemprop="collectedCount"]'
 xpath_list['count_click'] = '//*[@id="totleclick"]'
-xpath_list['count_review'] = '//span[@itemprop="reviewCount"]'
-
+xpath_list['count_recommend'] = '//span[@itemprop="reviewCount"]'
+# //*[@id="main"]/div[14]/div[1]
+# //*[@id="main"]/div[14]/div[2]
 try:
-    links = WebDriverWait(driver, 10, poll_frequency=0.2).until(
-        EC.visibility_of_all_elements_located((By.XPATH, '//div[@class = "wrapper box_06 first"]/ul/li/a'))
-    )
+    links = find_elements('//div[@class = "wrapper box_06 first"]/ul/li/a')
     link_list = [link.get_attribute('href') for link in links]
     for link in link_list:
-        driver.get(link)
-        try:
-            result_list = dict()
-            WebDriverWait(driver, timeout=10, poll_frequency=0.05).until(
-                EC.visibility_of_element_located((By.XPATH, xpath_list['article_name']))
-            )
-            for value, xpath in xpath_list.items():
-                result_list[value] = driver.find_element_by_xpath(xpath).text
+        acquire_article(driver, link, '1', '1', '1')
 
-            print(' '.join(result for result in result_list.values()))
-            print("--------------------")
-        except Exception as e:
-            print("--------------------", link, e)
 finally:
     driver.quit()
