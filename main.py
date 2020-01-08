@@ -74,44 +74,77 @@ class Article(object):
         self.list_number = list_number
 
 
-def acquire_article(article_driver, article_link, article_type, article_list, list_number):
-    article_driver.get(article_link)
-    try:
-        result_list = dict()
-        WebDriverWait(article_driver, timeout=10, poll_frequency=0.05).until(
-            EC.visibility_of_element_located((By.XPATH, xpath_list['article_name']))
-        )
-        for name, xpath in xpath_list.items():
-            result_list[name] = article_driver.find_element_by_xpath(xpath).text
+# 获得晋江数据类
+class JJDateAcquire:
+    def __init__(self):
+        self.driver = webdriver.Chrome(options=self.set_web_option(), executable_path='E:/chromedriver_win32/chromedriver')
 
-        print(' '.join(result for result in result_list.values()))
-        print(' '.join([article_type, article_list, list_number]))
-        print("--------------------")
-    except Exception as e:
-        print("--------------------", link, e)
+    # 配置浏览器信息
+    @staticmethod
+    def set_web_option():
+        opt = webdriver.ChromeOptions()
+        opt.add_argument("--headless")
+        # 不等待解析完毕就直接返回
+        opt.set_capability('pageLoadStrategy', 'none')
+        return opt
+
+    def find_elements(self, link):
+        return WebDriverWait(self.driver, 10, poll_frequency=0.05).until(
+            EC.visibility_of_all_elements_located((By.XPATH, link)))
+
+    def find_element(self, link):
+        return WebDriverWait(self.driver, timeout=10, poll_frequency=0.05).until(
+                EC.visibility_of_element_located((By.XPATH, link)))
+
+    def acquire_article_type(self, jj_url):
+        self.driver.get(jj_url)
+        try:
+            links = self.find_elements('//*[@id="sitehead"]/div[4]/div[2]/div[1]/a')
+            link_list = dict()
+            for link in links:
+                link_list[link.text] = link.get_attribute('href')
+            for article_type, article_type_url in link_list.items():
+                if not article_type == '完结':
+                    print(article_type, article_type_url)
+        except Exception as e:
+            print(e)
+
+    # //*[@id="main"]/div[12]/div
+    def acquire_article_list(self, article_type_url, article_type):
+        self.driver.get(article_type_url)  # 'http://www.jjwxc.net/fenzhan/dm/bl.html'
+        try:
+            links = self.find_elements('//div[@class = "wrapper box_06 first"]/ul/li/a')
+            link_list = [link.get_attribute('href') for link in links]
+            for link in link_list:
+                self.acquire_article(link, article_type, '1', '1')
+        finally:
+            self.driver.quit()
+
+    def acquire_article(self, article_link, article_type, article_list, list_number):
+        self.driver.get(article_link)
+        try:
+            result_list = dict()
+            self.find_element(xpath_list['article_name'])
+            for name, xpath in xpath_list.items():
+                result_list[name] = self.driver.find_element_by_xpath(xpath).text
+
+            print(' '.join(result for result in result_list.values()))
+            print(' '.join([article_type, article_list, list_number]))
+            print("--------------------")
+        except Exception as e:
+            print("--------------------", e)
+
+    def get_date(self, jj_url):
+        self.driver.get(jj_url)  # 'http://www.jjwxc.net/fenzhan/dm/bl.html'
+        try:
+            links = self.find_elements('//div[@class = "wrapper box_06 first"]/ul/li/a')
+            link_list = [link.get_attribute('href') for link in links]
+            for link in link_list:
+                self.acquire_article(link, '1', '1', '1')
+        finally:
+            self.driver.quit()
 
 
-def acquire_article_type(article_drive, jj_url):
-    article_drive.get(jj_url)
-
-
-def find_elements(link):
-    return WebDriverWait(driver, 10, poll_frequency=0.05).until(
-        EC.visibility_of_all_elements_located((By.XPATH, link)))
-
-
-def find_element(link):
-    return WebDriverWait(driver, 10, poll_frequency=0.05).until(
-        EC.visibility_of_all_element_located((By.XPATH, link)))
-
-
-# 配置浏览器信息
-opt = webdriver.ChromeOptions()
-opt.add_argument("--headless")
-# 不等待解析完毕就直接返回
-opt.set_capability('pageLoadStrategy', 'none')
-driver = webdriver.Chrome(options=opt, executable_path='E:/chromedriver_win32/chromedriver')
-driver.get('http://www.jjwxc.net/fenzhan/dm/bl.html')
 xpath_list = dict()
 xpath_list['article_name'] = '//*[@id="oneboolt"]/tbody/tr[1]/td/div/span/h1/span'
 xpath_list['article_author'] = '//*[@id="oneboolt"]/tbody/tr[1]/td/div/h2/a/span'
@@ -120,11 +153,6 @@ xpath_list['count_click'] = '//*[@id="totleclick"]'
 xpath_list['count_recommend'] = '//span[@itemprop="reviewCount"]'
 # //*[@id="main"]/div[14]/div[1]
 # //*[@id="main"]/div[14]/div[2]
-try:
-    links = find_elements('//div[@class = "wrapper box_06 first"]/ul/li/a')
-    link_list = [link.get_attribute('href') for link in links]
-    for link in link_list:
-        acquire_article(driver, link, '1', '1', '1')
-
-finally:
-    driver.quit()
+date = JJDateAcquire()
+# date.acquire_article_type('http://www.jjwxc.net/fenzhan/yq/')
+date.get_date('http://www.jjwxc.net/fenzhan/dm/bl.html')
